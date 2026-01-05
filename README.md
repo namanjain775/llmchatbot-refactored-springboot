@@ -235,11 +235,13 @@ It reflects how LLMs are integrated into real-world backend systems.
 
 
 
-Below is logs for one such sample conversation
+Below are the logs for one such sample conversation
+
 ========== OpenAIClient.ask() ==========
 Prompt received: You are an IT customer support executive for a SaaS product.
 You have deep knowledge of the United States Telecom domain,
 including federal regulations and company-specific policies.
+
 
 Your goals:
 - Be polite, concise, and professional
@@ -265,19 +267,32 @@ User issue:
 I am not able to activate my verizon eSim on the iphone 17 that I received yesterday.
 
 ✅ OPENAI_API_KEY detected (length=164)
+
 ========== buildRequestBody() ==========
+
 🟡 Final Request JSON:
 {"model":"gpt-4.1-mini","input":"You are an IT customer support executive for a SaaS product.\nYou have deep knowledge of the United States Telecom domain,\nincluding federal regulations and company-specific policies.\n\nYour goals:\n- Be polite, concise, and professional\n- Provide step-by-step troubleshooting guidance\n- Do NOT make assumptions or hallucinate\n- If the issue cannot be resolved confidently, recommend escalation\n\nIMPORTANT OUTPUT RULES:\n- Respond ONLY in valid JSON\n- Do NOT include explanations outside JSON\n- The confidence value MUST be a number between 0.0 and 1.0\n\nOutput format (STRICT):\n{\n  \"reply\": \"<your response to the user>\",\n  \"confidence\": <number between 0.0 and 1.0>\n}\n\nIf confidence is below 0.7, the reply MUST mention that escalation\nto a human agent is recommended.\n\nUser issue:\nI am not able to activate my verizon eSim on the iphone 17 that I received yesterday.\n","temperature":0.2,"max_output_tokens":200}
+
 ➡️ Attempt 1 calling OpenAI
+
 ========== callOpenAI() ==========
+
 ➡️ OpenAI URL: https://api.openai.com/v1/responses
+
 ➡️ HTTP Method: POST
+
 ➡️ Headers: Authorization=Bearer *****, Content-Type=application/json
+
 ➡️ Request Body:
+
 {"model":"gpt-4.1-mini","input":"You are an IT customer support executive for a SaaS product.\nYou have deep knowledge of the United States Telecom domain,\nincluding federal regulations and company-specific policies.\n\nYour goals:\n- Be polite, concise, and professional\n- Provide step-by-step troubleshooting guidance\n- Do NOT make assumptions or hallucinate\n- If the issue cannot be resolved confidently, recommend escalation\n\nIMPORTANT OUTPUT RULES:\n- Respond ONLY in valid JSON\n- Do NOT include explanations outside JSON\n- The confidence value MUST be a number between 0.0 and 1.0\n\nOutput format (STRICT):\n{\n  \"reply\": \"<your response to the user>\",\n  \"confidence\": <number between 0.0 and 1.0>\n}\n\nIf confidence is below 0.7, the reply MUST mention that escalation\nto a human agent is recommended.\n\nUser issue:\nI am not able to activate my verizon eSim on the iphone 17 that I received yesterday.\n","temperature":0.2,"max_output_tokens":200}
+
 ⬅️ HTTP Status Code: 200
+
 ⬅️ HTTP Status Message: 
+
 ⬅️ Response Headers:
+
 date: Mon, 05 Jan 2026 14:11:35 GMT
 content-type: application/json
 x-ratelimit-limit-requests: 500
@@ -300,6 +315,7 @@ set-cookie: ██
 server: cloudflare
 cf-ray: 9b9390aa0d78a7b0-DEL
 alt-svc: h3=":443"; ma=86400
+
 
 ✅ OpenAI Raw Success Response:
 {
@@ -371,13 +387,19 @@ alt-svc: h3=":443"; ma=86400
   "user": null,
   "metadata": {}
 }
+
 ========== parseResponse() ==========
+
 Raw JSON length: 2149
+
 🟢 Model text payload:
 {
   "reply": "To activate your Verizon eSIM on your iPhone 17, please follow these steps: 1. Ensure your iPhone is connected to Wi-Fi or cellular data. 2. Go to Settings > Cellular > Add Cellular Plan. 3. Scan the QR code provided by Verizon or enter the activation code manually. 4. Follow the on-screen instructions to complete activation. 5. Restart your iPhone after activation. If you encounter any errors during this process, please verify that your Verizon account is active and supports eSIM activation. If the issue persists, I recommend contacting Verizon support or escalating this issue to a human agent for further assistance.",
   "confidence": 0.85
 }
+
 ✅ Parsed reply: To activate your Verizon eSIM on your iPhone 17, please follow these steps: 1. Ensure your iPhone is connected to Wi-Fi or cellular data. 2. Go to Settings > Cellular > Add Cellular Plan. 3. Scan the QR code provided by Verizon or enter the activation code manually. 4. Follow the on-screen instructions to complete activation. 5. Restart your iPhone after activation. If you encounter any errors during this process, please verify that your Verizon account is active and supports eSIM activation. If the issue persists, I recommend contacting Verizon support or escalating this issue to a human agent for further assistance.
+
 ✅ Confidence: 0.85
+
 ✅ Token usage: Total Tokens / Prompt Tokens / Completions Tokens - 349 / 201 / 148
