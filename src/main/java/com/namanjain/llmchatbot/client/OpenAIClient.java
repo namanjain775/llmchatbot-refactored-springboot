@@ -1,150 +1,3 @@
-//package com.namanjain.llmchatbot.client;
-//
-//import com.google.gson.JsonArray;
-//import com.google.gson.JsonObject;
-//import com.google.gson.JsonParser;
-//import com.google.gson.JsonParseException;
-//import com.namanjain.llmchatbot.dto.ChatResponse;
-//import com.namanjain.llmchatbot.dto.TokensUsageDTO;
-//import okhttp3.*;
-//import org.springframework.stereotype.Component;
-//
-//import java.io.IOException;
-//import java.util.concurrent.TimeUnit;
-//
-///**
-// * OpenAIClient
-// *
-// * Responsible for:
-// *  - Communicating with OpenAI Responses API
-// *  - Sending prompt input to the model
-// *  - Parsing structured model output (reply + confidence)
-// *  - Extracting authoritative token usage
-// *
-// * This class intentionally contains NO business logic.
-// * It is a pure external API integration layer.
-// */
-//@Component
-//public class OpenAIClient {
-//
-//    /* ===================== Configuration ===================== */
-//
-//    private static final String API_URL = "https://api.openai.com/v1/responses";
-//    private static final String MODEL = "gpt-4.1-mini";
-//    private static final double TEMPERATURE = 0.2;
-//    private static final int MAX_OUTPUT_TOKENS = 200;
-//
-//    /* ===================== HTTP Client ===================== */
-//
-//    /**
-//     * Reusable, thread-safe HTTP client.
-//     * Timeouts are intentionally high to accommodate LLM latency.
-//     */
-//    private final OkHttpClient httpClient = new OkHttpClient.Builder()
-//            .connectTimeout(90, TimeUnit.SECONDS)
-//            .readTimeout(90, TimeUnit.SECONDS)
-//            .build();
-//
-//    /* ===================== Public API ===================== */
-//
-//    /**
-//     * Sends a prompt to OpenAI and returns a structured ChatResponse.
-//     *
-//     * @param prompt Fully constructed prompt (from PromptBuilder)
-//     * @return ChatResponse containing reply, model confidence, and token usage
-//     */
-//    public ChatResponse ask(String prompt) {
-//
-//        /* -------- API Key Validation -------- */
-//
-//        String apiKey = System.getenv("OPENAI_API_KEY");
-//        if (apiKey == null || apiKey.isBlank()) {
-//            throw new IllegalStateException("OPENAI_API_KEY not set in environment variables");
-//        }
-//
-//        /* -------- Build Request Body (Responses API) -------- */
-//
-//        JsonObject requestBody = new JsonObject();
-//        requestBody.addProperty("model", MODEL);
-//        requestBody.addProperty("input", prompt); // Responses API uses `input`
-//        requestBody.addProperty("temperature", TEMPERATURE);
-//        requestBody.addProperty("max_output_tokens", MAX_OUTPUT_TOKENS);
-//
-//        Request request = new Request.Builder()
-//                .url(API_URL)
-//                .addHeader("Authorization", "Bearer " + apiKey)
-//                .addHeader("Content-Type", "application/json")
-//                .post(RequestBody.create(
-//                        requestBody.toString(),
-//                        MediaType.parse("application/json")
-//                ))
-//                .build();
-//
-//        /* -------- Execute Request -------- */
-//
-//        try (Response response = httpClient.newCall(request).execute()) {
-//
-//            if (!response.isSuccessful()) {
-//                throw new RuntimeException("OpenAI API error: HTTP " + response.code());
-//            }
-//
-//            /* -------- Read Raw Response (ONLY ONCE) -------- */
-//
-//            String rawResponse = response.body().string();
-//            // Prefer logger in real systems
-//            System.out.println("🔍 OpenAI Raw Response:\n" + rawResponse);
-//
-//            JsonObject root = JsonParser.parseString(rawResponse).getAsJsonObject();
-//
-//            /* -------- Extract Model Output -------- */
-//
-//            JsonArray outputArray = root.getAsJsonArray("output");
-//            if (outputArray == null || outputArray.isEmpty()) {
-//                throw new RuntimeException("OpenAI response missing output array");
-//            }
-//
-//            JsonObject messageObject = outputArray.get(0).getAsJsonObject();
-//            JsonArray contentArray = messageObject.getAsJsonArray("content");
-//
-//            if (contentArray == null || contentArray.isEmpty()) {
-//                throw new RuntimeException("OpenAI response missing content");
-//            }
-//
-//            String modelText = contentArray
-//                    .get(0).getAsJsonObject()
-//                    .get("text")
-//                    .getAsString();
-//
-//            /* -------- Parse Model-Generated JSON -------- */
-//
-//            JsonObject modelJson = JsonParser.parseString(modelText).getAsJsonObject();
-//
-//            String reply = modelJson.get("reply").getAsString();
-//            double confidence = modelJson.get("confidence").getAsDouble();
-//
-//            /* -------- Extract Token Usage -------- */
-//
-//            JsonObject usageJson = root.getAsJsonObject("usage");
-//
-//            TokensUsageDTO tokenUsage = new TokensUsageDTO(
-//                    usageJson.get("input_tokens").getAsInt(),
-//                    usageJson.get("output_tokens").getAsInt(),
-//                    usageJson.get("total_tokens").getAsInt()
-//            );
-//
-//            /* -------- Return API Response DTO -------- */
-//
-//            return new ChatResponse(reply, confidence, tokenUsage);
-//
-//        } catch (IOException e) {
-//            throw new RuntimeException("Failed to call OpenAI API", e);
-//        } catch (JsonParseException e) {
-//            throw new RuntimeException("Model returned invalid JSON output", e);
-//        }
-//    }
-//}
-
-
 package com.namanjain.llmchatbot.client;
 
 import com.google.gson.*;
@@ -180,19 +33,31 @@ public class OpenAIClient {
 
     public ChatResponse ask(String prompt) {
 
+        System.out.println("========== OpenAIClient.ask() ==========");
+        System.out.println("Prompt received: " + prompt);
+
         String apiKey = System.getenv("OPENAI_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
+            System.out.println("❌ OPENAI_API_KEY NOT FOUND in environment");
             throw new IllegalStateException("OPENAI_API_KEY not set");
         }
 
+        System.out.println("✅ OPENAI_API_KEY detected (length=" + apiKey.length() + ")");
+
         JsonObject requestBody = buildRequestBody(prompt);
+        System.out.println("🟡 Final Request JSON:\n" + requestBody.toString());
 
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
+                System.out.println("➡️ Attempt " + attempt + " calling OpenAI");
                 return callOpenAI(requestBody, apiKey);
             } catch (IOException e) {
 
+                System.out.println("⚠️ IOException on attempt " + attempt);
+                e.printStackTrace(System.out);
+
                 if (attempt >= MAX_RETRIES) {
+                    System.out.println("❌ Max retries reached. Failing.");
                     throw new RuntimeException("OpenAI call failed after retries", e);
                 }
 
@@ -207,6 +72,8 @@ public class OpenAIClient {
 
     private ChatResponse callOpenAI(JsonObject requestBody, String apiKey) throws IOException {
 
+        System.out.println("========== callOpenAI() ==========");
+
         Request request = new Request.Builder()
                 .url(API_URL)
                 .addHeader("Authorization", "Bearer " + apiKey)
@@ -217,21 +84,35 @@ public class OpenAIClient {
                 ))
                 .build();
 
+        System.out.println("➡️ OpenAI URL: " + API_URL);
+        System.out.println("➡️ HTTP Method: POST");
+        System.out.println("➡️ Headers: Authorization=Bearer *****, Content-Type=application/json");
+        System.out.println("➡️ Request Body:\n" + requestBody.toString());
+
         try (Response response = httpClient.newCall(request).execute()) {
 
+            System.out.println("⬅️ HTTP Status Code: " + response.code());
+            System.out.println("⬅️ HTTP Status Message: " + response.message());
+            System.out.println("⬅️ Response Headers:\n" + response.headers());
+
             if (!response.isSuccessful()) {
+
+                String errorBody = response.body() != null ? response.body().string() : "<empty>";
+                System.out.println("❌ OpenAI Error Response Body:\n" + errorBody);
+
                 int code = response.code();
 
                 // Retry only for transient errors
                 if (code == 429 || code >= 500) {
-                    throw new IOException("Transient OpenAI error: " + code);
+                    System.out.println("🔁 Retriable error detected (code=" + code + ")");
+                    throw new IOException("Transient OpenAI error: HTTP " + code);
                 }
 
-                throw new RuntimeException("OpenAI API error: HTTP " + code);
+                throw new RuntimeException("OpenAI API error: HTTP " + code + "\nBody:\n" + errorBody);
             }
 
             String rawResponse = response.body().string();
-            System.out.println("🔍 OpenAI Raw Response:\n" + rawResponse);
+            System.out.println("✅ OpenAI Raw Success Response:\n" + rawResponse);
 
             return parseResponse(rawResponse);
         }
@@ -241,10 +122,14 @@ public class OpenAIClient {
 
     private ChatResponse parseResponse(String rawJson) {
 
+        System.out.println("========== parseResponse() ==========");
+        System.out.println("Raw JSON length: " + rawJson.length());
+
         JsonObject root = JsonParser.parseString(rawJson).getAsJsonObject();
 
         JsonArray outputArray = root.getAsJsonArray("output");
         if (outputArray == null || outputArray.isEmpty()) {
+            System.out.println("❌ Missing or empty 'output' array");
             throw new RuntimeException("Missing output from OpenAI");
         }
 
@@ -252,12 +137,15 @@ public class OpenAIClient {
         JsonArray content = message.getAsJsonArray("content");
 
         if (content == null || content.isEmpty()) {
+            System.out.println("❌ Empty 'content' array in output");
             throw new RuntimeException("Empty model response");
         }
 
         String modelText = content.get(0).getAsJsonObject()
                 .get("text")
                 .getAsString();
+
+        System.out.println("🟢 Model text payload:\n" + modelText);
 
         JsonObject modelJson = JsonParser.parseString(modelText).getAsJsonObject();
 
@@ -272,14 +160,21 @@ public class OpenAIClient {
                 usage.get("total_tokens").getAsInt()
         );
 
+        System.out.println("✅ Parsed reply: " + reply);
+        System.out.println("✅ Confidence: " + confidence);
+        System.out.println("✅ Token usage: Total Tokens / Prompt Tokens / Completions Tokens - " + tokens.getTotalTokens() + " / " + tokens.getPromptTokens() + " / " + tokens.getCompletionTokens());
+
         return new ChatResponse(reply, confidence, tokens);
     }
 
     /* ===================== Retry Backoff ===================== */
 
     private void sleepWithBackoff(int attempt) {
+
+        long delay = BASE_RETRY_DELAY_MS * attempt;
+        System.out.println("⏳ Backoff sleep: " + delay + " ms");
+
         try {
-            long delay = BASE_RETRY_DELAY_MS * attempt;
             Thread.sleep(delay);
         } catch (InterruptedException ignored) {
             Thread.currentThread().interrupt();
@@ -289,11 +184,15 @@ public class OpenAIClient {
     /* ===================== Request Builder ===================== */
 
     private JsonObject buildRequestBody(String prompt) {
+
+        System.out.println("========== buildRequestBody() ==========");
+
         JsonObject body = new JsonObject();
         body.addProperty("model", MODEL);
         body.addProperty("input", prompt);
         body.addProperty("temperature", TEMPERATURE);
         body.addProperty("max_output_tokens", MAX_OUTPUT_TOKENS);
+
         return body;
     }
 }
